@@ -12,9 +12,11 @@ provider:
   region: us-west-2
   environment:
     AUCTIONS_TABLE_NAME: ${self:custom.AuctionsTable.name}
-    
+    MAIL_QUEUE_URL: ${self:custom.MailQueue.url}
+
   iamRoleStatements:
     - ${file(iam/AuctionsTableIAM.yml):AuctionsTableIAM}
+    - ${file(iam/MailQueueIAM.yml):MailQueueIAM}
 
 resources:
   Resources:
@@ -61,13 +63,14 @@ functions:
 #    events:
 #      - schedule: rate(1 minute)
           
-  
-          
-
 custom:
   authorizer: arn:aws:lambda:#{AWS::Region}:#{AWS::AccountId}:function:auth-service-${self:provider.stage}-auth
   AuctionsTable:
     name: !Ref AuctionsTable # intrinsic functions
     arn: !GetAtt AuctionsTable.Arn
+  MailQueue:
+    # importing the (exported) MailQueue outputs from cloud formation
+    arn: ${cf:notification-service-${self:provider.stage}.MailQueueArn}
+    url: ${cf:notification-service-${self:provider.stage}.MailQueueUrl}
   bundle:
     linting: false
