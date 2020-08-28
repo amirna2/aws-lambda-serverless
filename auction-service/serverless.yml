@@ -12,15 +12,18 @@ provider:
   region: us-west-2
   environment:
     AUCTIONS_TABLE_NAME: ${self:custom.AuctionsTable.name}
+    AUCTIONS_BUCKET_NAME: ${self:custom.AuctionsBucket.name}
     MAIL_QUEUE_URL: ${self:custom.MailQueue.url}
 
   iamRoleStatements:
     - ${file(iam/AuctionsTableIAM.yml):AuctionsTableIAM}
     - ${file(iam/MailQueueIAM.yml):MailQueueIAM}
+    - ${file(iam/AuctionsBucketIAM.yml):AuctionsBucketIAM}
 
 resources:
   Resources:
     AuctionsTable: ${file(resources/AuctionsTable.yml):AuctionsTable}
+    AuctionsBucket: ${file(resources/AuctionsBucket.yml):AuctionsBucket}
 
 functions:
   createAuction:
@@ -54,7 +57,15 @@ functions:
           method: PATCH
           path: auction/{id}/bid
           authorizer: ${self:custom.authorizer}
-  
+
+  uploadAuctionPicture:
+    handler: src/handlers/uploadAuctionPicture.handler
+    events:
+      - http:
+          method: PATCH
+          path: auction/{id}/picture
+          authorizer: ${self:custom.authorizer}
+
   # Using AWS EventBridge to scheducle an event every minute
   # commented out for development
   # use "sls invoke -f processAuctions -l" from CLI to manually trigger the event 
@@ -72,5 +83,7 @@ custom:
     # importing the (exported) MailQueue outputs from cloud formation
     arn: ${cf:notification-service-${self:provider.stage}.MailQueueArn}
     url: ${cf:notification-service-${self:provider.stage}.MailQueueUrl}
+  AuctionsBucket:
+    name: auctions-bucket-4m1rn4th00-${self:provider.stage}
   bundle:
     linting: false
